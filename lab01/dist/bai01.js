@@ -14,8 +14,8 @@ class Student extends Person {
         this.grade = grade;
     }
     informationStudent() {
-        return super.information() + ', ma sinh vien cua toi la ' + this.grade;
+        return super.information() + ', diem cua toi la ' + this.grade;
     }
 }
-const p = new Student('Tran Cong Tinh', 21, 9);
+const p = new Student('Tran Cong Tinh', 21, 9.5);
 console.log(p.informationStudent());
