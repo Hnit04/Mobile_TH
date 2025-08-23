@@ -11,5 +11,16 @@ class Person{
     }
   
 }
-  const p= new Person('Tran Cong Tinh', 21);
-    console.log(p.information());
+class Student extends Person{
+    grade: number;
+    constructor(name: string, age: number, grade: number){
+        super(name, age);
+        this.grade= grade;
+    }
+
+    informationStudent(){
+        return super.information() + ', diem cua toi la ' + this.grade;
+    }
+}
+const p= new Student('Tran Cong Tinh', 21,9);
+console.log(p.informationStudent());

@@ -8,5 +8,14 @@ class Person {
         return 'Ten toi la ' + this.name + ', toi ' + this.age + ' tuoi';
     }
 }
-const p = new Person('Nguyen Van A', 20);
-console.log(p.information());
+class Student extends Person {
+    constructor(name, age, grade) {
+        super(name, age);
+        this.grade = grade;
+    }
+    informationStudent() {
+        return super.information() + ', ma sinh vien cua toi la ' + this.grade;
+    }
+}
+const p = new Student('Tran Cong Tinh', 21, 9);
+console.log(p.informationStudent());
