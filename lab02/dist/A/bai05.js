@@ -1,13 +1,10 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.simulateTask = simulateTask;
-function simulateTask(time) {
+function simulateTask(time, a) {
     return new Promise((resolve) => {
         setTimeout(() => {
-            resolve("Task done");
+            resolve("Task done " + a);
         }, time);
     });
 }
-simulateTask(3000).then((msg) => {
-    console.log(msg);
-});

@@ -1,13 +1,8 @@
 
-export function simulateTask(time: number): Promise<string> {
+export function simulateTask(time: number, a: string): Promise<string> {
     return new Promise((resolve) => {
         setTimeout(() => {
-            resolve("Task done");
+            resolve("Task done "+a);
         }, time);
     });
 }
-
-
-simulateTask(3000).then((msg) => {
-    console.log(msg); 
-});
