@@ -12,4 +12,5 @@ const filterEvenNumbers = new Promise<number[]>((resolve, reject) => {
 
 filterEvenNumbers
     .then(result => console.log("Even numbers:", result))
-    .catch(err => console.error("Error:", err));
+    .catch(err => console.error("Error:", err))
+    
