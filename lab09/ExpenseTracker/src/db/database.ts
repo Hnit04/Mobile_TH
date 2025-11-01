@@ -1,8 +1,7 @@
 // src/db/database.ts
 import * as SQLite from 'expo-sqlite';
 import dayjs from 'dayjs'; 
-import { Expense, ExpenseInput } from '../types/expense'; 
-
+import { Expense, ExpenseInput, ExpenseType } from '../types/expense';
 const db = SQLite.openDatabaseSync('expenses.db');
 
 export const initDatabase = () => {
@@ -180,6 +179,34 @@ export const getAndFilterExpenses = (
     return expenses;
   } catch (error) {
     console.error('Error fetching and filtering expenses: ', error);
+    return [];
+  }
+};
+//cau 11
+export interface MonthlyStat {
+  month: string; // Định dạng 'YYYY-MM'
+  totalThu: number;
+  totalChi: number;
+}
+
+export const getMonthlyStats = (): MonthlyStat[] => {
+  try {
+    const stats = db.getAllSync<MonthlyStat>(`
+      SELECT
+        strftime('%Y-%m', date) AS month,
+        SUM(CASE WHEN type = 'thu' THEN amount ELSE 0 END) AS totalThu,
+        SUM(CASE WHEN type = 'chi' THEN amount ELSE 0 END) AS totalChi
+      FROM expenses
+      WHERE isDeleted = 0
+      GROUP BY month
+      ORDER BY month DESC
+    `);
+    
+
+    return stats.filter(s => s.totalThu > 0 || s.totalChi > 0);
+
+  } catch (error) {
+    console.error('Error fetching monthly stats: ', error);
     return [];
   }
 };
