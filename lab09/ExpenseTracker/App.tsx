@@ -5,7 +5,6 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Text, View, StyleSheet } from 'react-native';
 
-// Import các màn hình
 import HomeScreen from './src/screens/HomeScreen';
 import ExpenseDetailScreen from './src/screens/ExpenseDetailScreen';
 import TrashScreen from './src/screens/TrashScreen';
@@ -15,14 +14,14 @@ import SyncScreen from './src/screens/SyncScreen';
 import { RootStackParamList } from './src/types/navigation';
 import { initDatabase } from './src/db/database';
 
-// Khởi tạo Stack Navigator
+
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export default function App() {
   const [dbInitialized, setDbInitialized] = useState(false);
 
   useEffect(() => {
-    // Khởi tạo database khi app mở
+    
     try {
       initDatabase();
       setDbInitialized(true);
@@ -33,7 +32,7 @@ export default function App() {
   }, []);
 
   if (!dbInitialized) {
-    // Hiển thị màn hình loading
+   
     return (
       <SafeAreaProvider>
         <View style={styles.loadingContainer}>
@@ -43,7 +42,6 @@ export default function App() {
     );
   }
 
-  // Câu 1a: Toàn bộ app được bọc trong SafeAreaProvider
   return (
     <SafeAreaProvider>
       <NavigationContainer>
@@ -61,7 +59,7 @@ export default function App() {
           <Stack.Screen
             name="HomeScreen"
             component={HomeScreen}
-            options={{ title: 'EXPENSE TRACKER' }} // Sẽ tùy chỉnh thêm ở Câu 1c
+            options={{ title: 'EXPENSE TRACKER' }} 
           />
           <Stack.Screen
             name="ExpenseDetailScreen"

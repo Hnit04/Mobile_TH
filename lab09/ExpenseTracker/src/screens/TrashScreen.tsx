@@ -16,7 +16,7 @@ import { Expense } from '../types/expense';
 import {
   getDeletedExpenses,
   searchDeletedExpenses,
-  restoreExpense, // <-- Import hàm restoreExpense
+  restoreExpense,
 } from '../db/database';
 
 const TrashScreen = () => {
@@ -24,7 +24,6 @@ const TrashScreen = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [refreshing, setRefreshing] = useState(false);
 
-  // Hàm tải danh sách
   const loadDeletedExpenses = useCallback(() => {
     console.log('Loading deleted expenses...');
     const data = searchQuery
@@ -42,9 +41,8 @@ const TrashScreen = () => {
     setRefreshing(false);
   }, [loadDeletedExpenses]);
 
-  // Cập nhật (Câu 8): Xử lý khi nhấn giữ
   const handleLongPress = (id: number) => {
-    // Câu 8a: Xuất hiện menu khôi phục
+  
     Alert.alert(
       'Khôi phục khoản thu/chi',
       'Bạn có muốn khôi phục khoản này?',
@@ -55,10 +53,10 @@ const TrashScreen = () => {
         },
         {
           text: 'Khôi phục',
-          style: 'default', // 'default' thay vì 'destructive'
+          style: 'default', 
           onPress: () => {
-            restoreExpense(id); // Gọi hàm khôi phục
-            loadDeletedExpenses(); // Tải lại danh sách (item sẽ biến mất khỏi thùng rác)
+            restoreExpense(id); 
+            loadDeletedExpenses();
           },
         },
       ]
@@ -83,7 +81,7 @@ const TrashScreen = () => {
               Alert.alert('Thông báo', 'Bạn không thể sửa khoản đã xóa.');
             }}
             onLongPress={() => {
-              // Câu 8: Gọi hàm xử lý nhấn giữ
+    
               handleLongPress(item.id);
             }}
           />
@@ -106,7 +104,6 @@ const TrashScreen = () => {
   );
 };
 
-// ... (styles giữ nguyên)
 const styles = StyleSheet.create({
   container: {
     flex: 1,

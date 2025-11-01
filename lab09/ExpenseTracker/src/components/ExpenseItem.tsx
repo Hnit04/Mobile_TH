@@ -4,26 +4,21 @@ import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { Expense } from '../types/expense';
 import dayjs from 'dayjs';
 
-// Định nghĩa props cho component
+
 interface ExpenseItemProps {
   item: Expense;
-  onPress: () => void;      // Xử lý khi nhấn (Câu 4)
-  onLongPress: () => void; // Xử lý khi nhấn giữ (Câu 5)
+  onPress: () => void;      
+  onLongPress: () => void; 
 }
-
-// Hàm format số tiền (ví dụ: 1000000 -> 1,000,000)
 const formatCurrency = (amount: number) => {
-  return amount.toLocaleString('vi-VN'); // Format theo kiểu Việt Nam
+  return amount.toLocaleString('vi-VN'); 
 };
 
 const ExpenseItem: React.FC<ExpenseItemProps> = ({ item, onPress, onLongPress }) => {
-  // Câu 2c: Format ngày tháng
   const formattedDate = dayjs(item.date).format('HH:mm - DD/MM/YYYY');
-  
-  // Câu 2b & 2d: Format số tiền và xác định màu sắc
   const isIncome = item.type === 'thu';
   const amountText = `${isIncome ? '+' : '-'}${formatCurrency(item.amount)} ₫`;
-  const amountColor = isIncome ? '#28a745' : '#dc3545'; // Xanh lá (thu) / Đỏ (chi)
+  const amountColor = isIncome ? '#28a745' : '#dc3545'; 
 
   return (
     <Pressable
@@ -32,14 +27,10 @@ const ExpenseItem: React.FC<ExpenseItemProps> = ({ item, onPress, onLongPress })
       onLongPress={onLongPress}
     >
       <View style={styles.leftColumn}>
-        {/* Câu 2a: Tên khoản chi */}
         <Text style={styles.title}>{item.title}</Text>
-        
-        {/* Câu 2c: Ngày tháng */}
         <Text style={styles.date}>{formattedDate}</Text>
       </View>
       <View style={styles.rightColumn}>
-        {/* Câu 2b & 2d: Số tiền và Loại */}
         <Text style={[styles.amount, { color: amountColor }]}>{amountText}</Text>
       </View>
     </Pressable>

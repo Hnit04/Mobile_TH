@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "ExpenseTracker",
-    "slug": "ExpenseTracker",
+    "name": "lab08",
+    "slug": "lab08",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -21,19 +21,10 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false,
-      "package": "com.hnit04.ExpenseTracker"
+      "predictiveBackGestureEnabled": false
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    },
-    "plugins": [
-      "expo-sqlite"
-    ],
-    "extra": {
-      "eas": {
-        "projectId": "c726bf65-5b5c-4569-a3c4-a46f0860d591"
-      }
     }
   }
 }

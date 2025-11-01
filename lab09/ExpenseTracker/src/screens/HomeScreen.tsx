@@ -9,19 +9,18 @@ import {
   Alert,
   TextInput,
   RefreshControl,
-  TouchableOpacity, // <-- Import TouchableOpacity
+  TouchableOpacity, 
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types/navigation';
 import ExpenseItem from '../components/ExpenseItem';
-import { Expense, ExpenseType } from '../types/expense'; // Import ExpenseType
-// Import hàm mới
+import { Expense, ExpenseType } from '../types/expense'; 
 import { softDeleteExpense, getAndFilterExpenses } from '../db/database'; 
 
 type HomeScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'HomeScreen'>;
-type FilterType = 'tat_ca' | 'thu' | 'chi'; // Kiểu cho bộ lọc
+type FilterType = 'tat_ca' | 'thu' | 'chi';
 
 const HomeScreen = () => {
   const navigation = useNavigation<HomeScreenNavigationProp>();
@@ -29,21 +28,19 @@ const HomeScreen = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [refreshing, setRefreshing] = useState(false);
   
-  // Mới (Câu 10): State cho bộ lọc
   const [filter, setFilter] = useState<FilterType>('tat_ca');
 
-  // Hàm tải danh sách (Cập nhật cho Câu 10b)
+
   const loadExpenses = useCallback(() => {
     console.log(`Loading expenses (filter: ${filter}, query: ${searchQuery})...`);
-    // Câu 10b: Gọi hàm mới kết hợp cả search và filter
+
     const data = getAndFilterExpenses(searchQuery, filter);
     setExpenses(data);
-  }, [searchQuery, filter]); // <-- Thêm filter làm dependency
+  }, [searchQuery, filter]);
 
-  // Tự động load lại
+
   useFocusEffect(loadExpenses);
 
-  // Hàm Refresh (Câu 7)
   const onRefresh = useCallback(() => {
     console.log('Refreshing expenses...');
     setRefreshing(true);
@@ -51,7 +48,6 @@ const HomeScreen = () => {
     setRefreshing(false);
   }, [loadExpenses]);
 
-  // Header (giữ nguyên)
   useLayoutEffect(() => {
     navigation.setOptions({
       headerRight: () => (
@@ -70,7 +66,6 @@ const HomeScreen = () => {
     });
   }, [navigation]);
 
-  // Xử lý nhấn giữ (Câu 5)
   const handleLongPress = (id: number) => {
     Alert.alert(
       'Xác nhận xóa',
@@ -91,7 +86,6 @@ const HomeScreen = () => {
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom', 'left', 'right']}>
-      {/* Thanh Tìm kiếm (Câu 6) */}
       <TextInput
         style={styles.searchBar}
         placeholder="Tìm kiếm theo tiêu đề..."
@@ -99,7 +93,6 @@ const HomeScreen = () => {
         onChangeText={setSearchQuery}
       />
 
-      {/* Câu 10a: Thanh chọn "Tất cả" / "Thu" / "Chi" */}
       <View style={styles.filterContainer}>
         <TouchableOpacity
           style={[styles.filterButton, filter === 'tat_ca' && styles.filterButtonActive]}
@@ -120,8 +113,6 @@ const HomeScreen = () => {
           <Text style={[styles.filterText, filter === 'chi' && styles.filterTextActive]}>Chi</Text>
         </TouchableOpacity>
       </View>
-
-      {/* Danh sách (Câu 10b) */}
       <FlatList
         data={expenses}
         keyExtractor={(item) => item.id.toString()}
@@ -154,7 +145,6 @@ const HomeScreen = () => {
   );
 };
 
-// ... (thêm styles mới)
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -174,7 +164,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     backgroundColor: '#fff',
   },
-  // Mới (Câu 10a): Styles cho bộ lọc
   filterContainer: {
     flexDirection: 'row',
     justifyContent: 'space-around',
@@ -204,7 +193,6 @@ const styles = StyleSheet.create({
     color: '#007AFF',
     fontWeight: '700',
   },
-  // ------------------
   emptyContainer: {
     flex: 1,
     marginTop: 100,

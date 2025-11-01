@@ -62,13 +62,9 @@ const StatisticsScreen = () => {
               yAxisLabel=""
               yAxisSuffix=" ₫"
               fromZero={true}
-              // =======================================================
-              // SỬA LỖI TẠI ĐÂY: Thêm 'hideLegend'
-              // =======================================================
               hideLegend={true} 
             />
-            
-            {/* Chú thích thủ công của chúng ta */}
+
             <View style={styles.legendContainer}>
                 <View style={styles.legendItem}>
                     <View style={[styles.legendColorBox, { backgroundColor: '#28a745' }]} />
@@ -83,7 +79,7 @@ const StatisticsScreen = () => {
 
             <Text style={styles.header}>Tổng quan</Text>
             <View style={styles.summaryContainer}>
-              {/* ... (phần tổng quan giữ nguyên) ... */}
+
               <View style={styles.summaryBox}>
                 <Text style={styles.summaryLabel}>Tổng Thu</Text>
                 <Text style={[styles.summaryValue, styles.income]}>
@@ -106,7 +102,6 @@ const StatisticsScreen = () => {
           </>
         ) : (
           <View style={styles.emptyContainer}>
-            {/* ... (phần empty giữ nguyên) ... */}
             <Text style={styles.emptyText}>Không có dữ liệu để thống kê.</Text>
             <Text style={styles.emptyText}>Hãy thêm vài khoản thu/chi.</Text>
           </View>

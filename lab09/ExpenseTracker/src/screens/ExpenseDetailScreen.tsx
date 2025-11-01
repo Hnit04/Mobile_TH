@@ -15,7 +15,6 @@ import { useRoute, RouteProp, useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types/navigation';
 import { SafeAreaView } from 'react-native-safe-area-context';
-// Import thêm getExpenseById và updateExpense
 import { addExpense, getExpenseById, updateExpense } from '../db/database';
 import { ExpenseType } from '../types/expense';
 
@@ -36,19 +35,18 @@ const ExpenseDetailScreen = () => {
   const titleRef = useRef<TextInput>(null);
   const amountRef = useRef<TextInput>(null);
 
-  // Mới (Câu 4): Load dữ liệu khi đang chỉnh sửa
+
   useEffect(() => {
     if (isEditing) {
       const expense = getExpenseById(expenseId);
       if (expense) {
         setTitle(expense.title);
-        setAmount(expense.amount.toString()); // Chuyển số về string cho TextInput
+        setAmount(expense.amount.toString()); 
         setType(expense.type);
       }
     }
-  }, [expenseId, isEditing]); // Chỉ chạy khi expenseId thay đổi
+  }, [expenseId, isEditing]); 
 
-  // Hàm xử lý "Save" (Thêm mới - Câu 3)
   const handleAdd = () => {
     const parsedAmount = parseFloat(amount);
     if (title.trim() === '' || isNaN(parsedAmount) || parsedAmount <= 0) {
@@ -58,7 +56,6 @@ const ExpenseDetailScreen = () => {
 
     addExpense({ title, amount: parsedAmount, type });
 
-    // Clear (Câu 3d)
     titleRef.current?.clear();
     amountRef.current?.clear();
     setTitle('');
@@ -68,7 +65,6 @@ const ExpenseDetailScreen = () => {
     navigation.goBack();
   };
 
-  // Hàm xử lý "Save" (Cập nhật - Câu 4)
   const handleUpdate = () => {
     const parsedAmount = parseFloat(amount);
     if (title.trim() === '' || isNaN(parsedAmount) || parsedAmount <= 0) {
@@ -76,7 +72,7 @@ const ExpenseDetailScreen = () => {
       return;
     }
     
-    // expenseId chắc chắn tồn tại vì hàm này chỉ được gọi khi isEditing = true
+
     updateExpense(expenseId!, { title, amount: parsedAmount, type });
     
     // Quay lại màn hình chính
@@ -90,7 +86,7 @@ const ExpenseDetailScreen = () => {
       headerRight: () => (
         <Button
           title="Save"
-          // Quyết định gọi hàm nào dựa trên isEditing
+
           onPress={isEditing ? handleUpdate : handleAdd}
         />
       ),
@@ -138,7 +134,6 @@ const ExpenseDetailScreen = () => {
   );
 };
 
-// ... (phần styles giữ nguyên)
 const styles = StyleSheet.create({
   container: {
     flex: 1,

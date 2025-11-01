@@ -7,21 +7,19 @@ import {
   Button,
   StyleSheet,
   Alert,
-  ActivityIndicator, // Để hiển thị loading
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import axios from 'axios'; // Import axios
+import axios from 'axios';
 import { getAllExpenses } from '../db/database'; 
 
 const SyncScreen = () => {
-  // State lưu link API (Câu 9b)
+
   const [apiUrl, setApiUrl] = useState('');
-  // State cho trạng thái loading
+
   const [isLoading, setIsLoading] = useState(false);
 
-  // Câu 9a: Hàm xử lý khi nhấn nút "Đồng bộ"
   const handleSync = async () => {
-    // 1. Kiểm tra link
     if (apiUrl.trim() === '' || !apiUrl.includes('https://')) {
       Alert.alert('Lỗi', 'Vui lòng dán link API (mockapi.io) hợp lệ.');
       return;
@@ -30,38 +28,22 @@ const SyncScreen = () => {
     setIsLoading(true);
 
     try {
-      // 2. Lấy tất cả expense đang hoạt động từ SQLite
       const localExpenses = getAllExpenses();
 
-      // ======================================================
-      // Câu 9a: Xóa toàn bộ data trong API
-      // ======================================================
       console.log('Bắt đầu xóa data cũ trên API...');
-      // 2.1. Lấy (GET) tất cả data cũ từ API
       const getResponse = await axios.get(apiUrl);
       const apiExpenses = getResponse.data;
-
-      // 2.2. Tạo mảng các promise DELETE
       const deletePromises = apiExpenses.map((expense: any) =>
         axios.delete(`${apiUrl}/${expense.id}`)
       );
-      // Chờ tất cả xóa xong
       await Promise.all(deletePromises);
       console.log(`Đã xóa ${apiExpenses.length} khoản cũ trên API.`);
-
-      // ======================================================
-      // Câu 9a: Copy toàn bộ thống kê (data mới) lên API
-      // ======================================================
       if (localExpenses.length === 0) {
         Alert.alert('Thông báo', 'Đã xóa data API. Không có data local để đẩy lên.');
         setIsLoading(false);
         return;
       }
-
-      console.log(`Bắt đầu đẩy ${localExpenses.length} khoản mới lên API...`);
-      // 3. Tạo mảng các promise POST (đẩy data local lên)
       const postPromises = localExpenses.map((expense) => {
-        // Chỉ gửi 4 trường như schema của mockapi
         const payload = {
           title: expense.title,
           amount: expense.amount,
@@ -71,10 +53,8 @@ const SyncScreen = () => {
         return axios.post(apiUrl, payload);
       });
 
-      // Chờ tất cả đẩy lên xong
       await Promise.all(postPromises);
 
-      // 4. Thông báo thành công
       Alert.alert(
         'Thành công',
         `Đã xóa ${apiExpenses.length} khoản cũ và đồng bộ ${localExpenses.length} khoản mới lên API.`

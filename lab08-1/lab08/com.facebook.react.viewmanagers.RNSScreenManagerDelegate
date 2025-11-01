@@ -1,0 +1,176 @@
+import { Feather } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
+import React from "react";
+import {
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
+} from "react-native";
+
+interface SupportItemProps {
+  icon: React.ComponentProps<typeof Feather>["name"];
+  title: string;
+  onPress: () => void;
+}
+
+const SupportItem = ({ icon, title, onPress }: SupportItemProps) => (
+  <TouchableOpacity style={styles.supportItem} onPress={onPress}>
+    <View style={styles.itemContent}>
+      <Feather name={icon} size={20} color="#4CAF50" style={styles.itemIcon} />
+      <Text style={styles.itemTitle}>{title}</Text>
+    </View>
+    <Feather name="chevron-right" size={20} color="#6B7280" />
+  </TouchableOpacity>
+);
+
+export default function HelpSupportScreen() {
+  const router = useRouter();
+
+  const handleOpenChatbot = () => {
+    console.log("Mở màn hình Chatbot Tư vấn (AI Assistant)");
+    router.push("/screens/chatbot/ChatbotScreen");
+  };
+
+  const handleOpenFAQ = () => {
+    console.log("Chuyển đến trang/màn hình Câu hỏi thường gặp (FAQ)");
+  };
+
+  const handleSubmitRequest = () => {
+    console.log("Chuyển đến màn hình Gửi yêu cầu/Liên hệ qua Email");
+  };
+
+  return (
+    <View style={styles.container}>
+      {/* HEADER CÓ NÚT QUAY LẠI */}
+      <View style={styles.customHeader}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+          <Feather name="arrow-left" size={24} color="#1F2937" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Trợ giúp & Hỗ trợ</Text>
+      </View>
+
+      <ScrollView style={styles.contentContainer} showsVerticalScrollIndicator={false}>
+        <Text style={styles.sectionTitle}>Tư vấn thông minh</Text>
+
+        <TouchableOpacity style={styles.chatbotCard} onPress={handleOpenChatbot}>
+          <Feather name="message-circle" size={32} color="#FFFFFF" />
+          <View style={styles.chatbotText}>
+            <Text style={styles.chatbotTitle}>Chatbot Tư vấn AI</Text>
+            <Text style={styles.chatbotDescription}>
+              Nhận câu trả lời tức thì về tài chính cá nhân và các tính năng ứng dụng.
+            </Text>
+          </View>
+          <Feather name="arrow-right" size={24} color="#FFFFFF" />
+        </TouchableOpacity>
+
+        <Text style={styles.sectionTitle}>Các tùy chọn khác</Text>
+
+        <View style={styles.card}>
+          <SupportItem
+            icon="book-open"
+            title="Câu hỏi thường gặp (FAQ)"
+            onPress={handleOpenFAQ}
+          />
+          <View style={styles.separator} />
+          <SupportItem
+            icon="mail"
+            title="Gửi yêu cầu hỗ trợ"
+            onPress={handleSubmitRequest}
+          />
+        </View>
+
+        <View style={{ height: 40 }} />
+      </ScrollView>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#F5F5F5",
+  },
+  customHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 24,
+    paddingTop: 50,
+    paddingBottom: 20,
+    backgroundColor: "#F5F5F5",
+    borderBottomWidth: 1,
+    borderBottomColor: "#E5E7EB",
+  },
+  backButton: {
+    marginRight: 15,
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "#1F2937",
+  },
+  contentContainer: {
+    paddingHorizontal: 24,
+    paddingTop: 10,
+  },
+  sectionTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#6B7280",
+    marginTop: 20,
+    marginBottom: 10,
+    textTransform: "uppercase",
+  },
+  chatbotCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#2196F3",
+    borderRadius: 12,
+    padding: 20,
+    elevation: 2,
+  },
+  chatbotText: {
+    flex: 1,
+    marginHorizontal: 15,
+  },
+  chatbotTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#FFFFFF",
+    marginBottom: 4,
+  },
+  chatbotDescription: {
+    fontSize: 14,
+    color: "rgba(255, 255, 255, 0.9)",
+  },
+  card: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 12,
+    elevation: 1,
+    paddingHorizontal: 20,
+  },
+  supportItem: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 15,
+  },
+  itemContent: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  itemIcon: {
+    marginRight: 15,
+  },
+  itemTitle: {
+    fontSize: 16,
+    fontWeight: "500",
+    color: "#1F2937",
+  },
+  separator: {
+    height: 1,
+    backgroundColor: "#E5E7EB",
+    marginHorizontal: -20,
+  },
+});
