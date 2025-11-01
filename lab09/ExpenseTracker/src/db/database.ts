@@ -44,18 +44,7 @@ export const addExpense = (expense: ExpenseInput) => {
 };
 
 
-export const getAllExpenses = (): Expense[] => {
-  try {
- 
-    const expenses = db.getAllSync<Expense>(
-      'SELECT * FROM expenses WHERE isDeleted = 0 ORDER BY date DESC'
-    );
-    return expenses;
-  } catch (error) {
-    console.error('Error fetching expenses: ', error);
-    return []; 
-  }
-};
+
 //cau 4
 export const getExpenseById = (id: number): Expense | null => {
   try {
@@ -146,6 +135,52 @@ export const restoreExpense = (id: number) => {
     console.log('Expense restored successfully');
   } catch (error) {
     console.error(`Error restoring expense with id ${id}: `, error);
+  }
+};
+//cau 10
+export const getAllExpenses = (): Expense[] => {
+  try {
+    const expenses = db.getAllSync<Expense>(
+      'SELECT * FROM expenses WHERE isDeleted = 0 ORDER BY date DESC'
+    );
+    return expenses;
+  } catch (error) {
+    console.error('Error fetching expenses: ', error);
+    return [];
+  }
+};
+
+export const getAndFilterExpenses = (
+  query: string,
+  filter: 'tat_ca' | 'thu' | 'chi'
+): Expense[] => {
+  console.log(`Querying DB with filter: ${filter}, query: ${query}`);
+  try {
+    // Xây dựng câu lệnh SQL
+    let sql = 'SELECT * FROM expenses WHERE isDeleted = 0';
+    const params: (string | number)[] = [];
+
+    // 1. Lọc theo Tìm kiếm (Câu 6)
+    if (query.trim() !== '') {
+      sql += ' AND title LIKE ?';
+      params.push(`%${query}%`);
+    }
+
+    // 2. Lọc theo Loại (Câu 10)
+    if (filter !== 'tat_ca') {
+      sql += ' AND type = ?';
+      params.push(filter);
+    }
+
+    // 3. Sắp xếp
+    sql += ' ORDER BY date DESC';
+
+    // Thực thi
+    const expenses = db.getAllSync<Expense>(sql, params);
+    return expenses;
+  } catch (error) {
+    console.error('Error fetching and filtering expenses: ', error);
+    return [];
   }
 };
 export { db };

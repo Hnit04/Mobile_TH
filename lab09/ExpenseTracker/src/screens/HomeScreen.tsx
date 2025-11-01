@@ -1,147 +1,220 @@
-// src/screens/SyncScreen.tsx
-import React, { useState } from 'react';
+// src/screens/HomeScreen.tsx
+import React, { useLayoutEffect, useState, useCallback } from 'react';
 import {
+  StyleSheet,
+  FlatList,
+  Button,
   View,
   Text,
-  TextInput,
-  Button,
-  StyleSheet,
   Alert,
-  ActivityIndicator, // Để hiển thị loading
+  TextInput,
+  RefreshControl,
+  TouchableOpacity, // <-- Import TouchableOpacity
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import axios from 'axios'; // Import axios
-import { getAllExpenses } from '../db/database'; 
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { RootStackParamList } from '../types/navigation';
+import ExpenseItem from '../components/ExpenseItem';
+import { Expense, ExpenseType } from '../types/expense'; // Import ExpenseType
+// Import hàm mới
+import { softDeleteExpense, getAndFilterExpenses } from '../db/database'; 
 
-const SyncScreen = () => {
-  // State lưu link API (Câu 9b)
-  const [apiUrl, setApiUrl] = useState('');
-  // State cho trạng thái loading
-  const [isLoading, setIsLoading] = useState(false);
+type HomeScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'HomeScreen'>;
+type FilterType = 'tat_ca' | 'thu' | 'chi'; // Kiểu cho bộ lọc
 
-  // Câu 9a: Hàm xử lý khi nhấn nút "Đồng bộ"
-  const handleSync = async () => {
-    // 1. Kiểm tra link
-    if (apiUrl.trim() === '' || !apiUrl.includes('https://')) {
-      Alert.alert('Lỗi', 'Vui lòng dán link API (mockapi.io) hợp lệ.');
-      return;
-    }
+const HomeScreen = () => {
+  const navigation = useNavigation<HomeScreenNavigationProp>();
+  const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [refreshing, setRefreshing] = useState(false);
+  
+  // Mới (Câu 10): State cho bộ lọc
+  const [filter, setFilter] = useState<FilterType>('tat_ca');
 
-    setIsLoading(true);
+  // Hàm tải danh sách (Cập nhật cho Câu 10b)
+  const loadExpenses = useCallback(() => {
+    console.log(`Loading expenses (filter: ${filter}, query: ${searchQuery})...`);
+    // Câu 10b: Gọi hàm mới kết hợp cả search và filter
+    const data = getAndFilterExpenses(searchQuery, filter);
+    setExpenses(data);
+  }, [searchQuery, filter]); // <-- Thêm filter làm dependency
 
-    try {
-      // 2. Lấy tất cả expense đang hoạt động từ SQLite
-      const localExpenses = getAllExpenses();
+  // Tự động load lại
+  useFocusEffect(loadExpenses);
 
-      // ======================================================
-      // Câu 9a: Xóa toàn bộ data trong API
-      // ======================================================
-      console.log('Bắt đầu xóa data cũ trên API...');
-      // 2.1. Lấy (GET) tất cả data cũ từ API
-      const getResponse = await axios.get(apiUrl);
-      const apiExpenses = getResponse.data;
+  // Hàm Refresh (Câu 7)
+  const onRefresh = useCallback(() => {
+    console.log('Refreshing expenses...');
+    setRefreshing(true);
+    loadExpenses();
+    setRefreshing(false);
+  }, [loadExpenses]);
 
-      // 2.2. Tạo mảng các promise DELETE
-      const deletePromises = apiExpenses.map((expense: any) =>
-        axios.delete(`${apiUrl}/${expense.id}`)
-      );
-      // Chờ tất cả xóa xong
-      await Promise.all(deletePromises);
-      console.log(`Đã xóa ${apiExpenses.length} khoản cũ trên API.`);
+  // Header (giữ nguyên)
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <Button
+          title="Add"
+          onPress={() => navigation.navigate('ExpenseDetailScreen', {})}
+        />
+      ),
+      headerLeft: () => (
+         <View style={styles.headerLeftButtons}>
+            <Button title="Trash" onPress={() => navigation.navigate('TrashScreen')} />
+            <Button title="Stats" onPress={() => navigation.navigate('StatisticsScreen')} />
+            <Button title="Sync" onPress={() => navigation.navigate('SyncScreen')} />
+         </View>
+      )
+    });
+  }, [navigation]);
 
-      // ======================================================
-      // Câu 9a: Copy toàn bộ thống kê (data mới) lên API
-      // ======================================================
-      if (localExpenses.length === 0) {
-        Alert.alert('Thông báo', 'Đã xóa data API. Không có data local để đẩy lên.');
-        setIsLoading(false);
-        return;
-      }
-
-      console.log(`Bắt đầu đẩy ${localExpenses.length} khoản mới lên API...`);
-      // 3. Tạo mảng các promise POST (đẩy data local lên)
-      const postPromises = localExpenses.map((expense) => {
-        // Chỉ gửi 4 trường như schema của mockapi
-        const payload = {
-          title: expense.title,
-          amount: expense.amount,
-          type: expense.type,
-          date: expense.date,
-        };
-        return axios.post(apiUrl, payload);
-      });
-
-      // Chờ tất cả đẩy lên xong
-      await Promise.all(postPromises);
-
-      // 4. Thông báo thành công
-      Alert.alert(
-        'Thành công',
-        `Đã xóa ${apiExpenses.length} khoản cũ và đồng bộ ${localExpenses.length} khoản mới lên API.`
-      );
-    } catch (error) {
-      console.error('Lỗi đồng bộ:', error);
-      Alert.alert(
-        'Lỗi',
-        'Đồng bộ thất bại. Vui lòng kiểm tra lại đường link API hoặc kết nối mạng.'
-      );
-    } finally {
-      setIsLoading(false);
-    }
+  // Xử lý nhấn giữ (Câu 5)
+  const handleLongPress = (id: number) => {
+    Alert.alert(
+      'Xác nhận xóa',
+      'Bạn có chắc muốn xóa khoản thu/chi này?',
+      [
+        { text: 'Hủy', style: 'cancel' },
+        {
+          text: 'Xóa',
+          style: 'destructive',
+          onPress: () => {
+            softDeleteExpense(id);
+            loadExpenses();
+          },
+        },
+      ]
+    );
   };
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom', 'left', 'right']}>
-      <View style={styles.content}>
-        <Text style={styles.label}>
-          Dán link API (resource "expenses") của bạn từ mockapi.io: 
-        </Text>
-        <TextInput
-          style={styles.input}
-          placeholder="https://68e9ece8f1eeb3f856e56122.mockapi.io/expenses"
-          value={apiUrl}
-          onChangeText={setApiUrl}
-          autoCapitalize="none"
-        />
-        {isLoading ? (
-          <ActivityIndicator size="large" color="#007AFF" />
-        ) : (
-          <Button title="XÓA và Đồng bộ Lên API" onPress={handleSync} color="#dc3545" />
-        )}
-         <Text style={styles.warning}>Lưu ý: Thao tác này sẽ XÓA SẠCH dữ liệu hiện có trên API trước khi tải dữ liệu mới lên.</Text>
+      {/* Thanh Tìm kiếm (Câu 6) */}
+      <TextInput
+        style={styles.searchBar}
+        placeholder="Tìm kiếm theo tiêu đề..."
+        value={searchQuery}
+        onChangeText={setSearchQuery}
+      />
+
+      {/* Câu 10a: Thanh chọn "Tất cả" / "Thu" / "Chi" */}
+      <View style={styles.filterContainer}>
+        <TouchableOpacity
+          style={[styles.filterButton, filter === 'tat_ca' && styles.filterButtonActive]}
+          onPress={() => setFilter('tat_ca')}
+        >
+          <Text style={[styles.filterText, filter === 'tat_ca' && styles.filterTextActive]}>Tất cả</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.filterButton, filter === 'thu' && styles.filterButtonActive]}
+          onPress={() => setFilter('thu')}
+        >
+          <Text style={[styles.filterText, filter === 'thu' && styles.filterTextActive]}>Thu</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.filterButton, filter === 'chi' && styles.filterButtonActive]}
+          onPress={() => setFilter('chi')}
+        >
+          <Text style={[styles.filterText, filter === 'chi' && styles.filterTextActive]}>Chi</Text>
+        </TouchableOpacity>
       </View>
+
+      {/* Danh sách (Câu 10b) */}
+      <FlatList
+        data={expenses}
+        keyExtractor={(item) => item.id.toString()}
+        renderItem={({ item }) => (
+          <ExpenseItem
+            item={item}
+            onPress={() => {
+              navigation.navigate('ExpenseDetailScreen', { expenseId: item.id });
+            }}
+            onLongPress={() => {
+              handleLongPress(item.id);
+            }}
+          />
+        )}
+        ListEmptyComponent={
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyText}>Không tìm thấy kết quả.</Text>
+          </View>
+        }
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={['#007AFF']}
+            tintColor={'#007AFF'}
+          />
+        }
+      />
     </SafeAreaView>
   );
 };
 
+// ... (thêm styles mới)
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#f5f5f5',
   },
-  content: {
-    flex: 1,
-    padding: 16,
+  headerLeftButtons: {
+      flexDirection: 'row',
+      gap: 8,
   },
-  label: {
-    fontSize: 16,
-    marginBottom: 8,
-  },
-  input: {
+  searchBar: {
     height: 40,
     borderColor: '#ddd',
     borderWidth: 1,
     borderRadius: 8,
+    marginHorizontal: 16,
+    marginTop: 10,
     paddingHorizontal: 12,
     backgroundColor: '#fff',
-    marginBottom: 20,
   },
-  warning: {
-      marginTop: 16,
-      fontSize: 12,
-      color: '#888',
-      textAlign: 'center'
-  }
+  // Mới (Câu 10a): Styles cho bộ lọc
+  filterContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginVertical: 10,
+    marginHorizontal: 16,
+    backgroundColor: '#e4e4e7',
+    borderRadius: 8,
+    padding: 4,
+  },
+  filterButton: {
+    flex: 1,
+    paddingVertical: 8,
+    borderRadius: 6,
+    alignItems: 'center',
+  },
+  filterButtonActive: {
+    backgroundColor: '#fff',
+    elevation: 1,
+    shadowOpacity: 0.1,
+  },
+  filterText: {
+    fontSize: 14,
+    color: '#555',
+    fontWeight: '500',
+  },
+  filterTextActive: {
+    color: '#007AFF',
+    fontWeight: '700',
+  },
+  // ------------------
+  emptyContainer: {
+    flex: 1,
+    marginTop: 100,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyText: {
+    fontSize: 16,
+    color: '#888',
+  },
 });
 
-export default SyncScreen;
+export default HomeScreen;
