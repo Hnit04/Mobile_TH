@@ -1,39 +1,72 @@
 // src/screens/TrashScreen.tsx
 import React, { useState, useCallback } from 'react';
-import { StyleSheet, FlatList, Text, View, Alert, TextInput } from 'react-native'; // Import TextInput
+import {
+  StyleSheet,
+  FlatList,
+  Text,
+  View,
+  Alert,
+  TextInput,
+  RefreshControl,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import ExpenseItem from '../components/ExpenseItem';
 import { Expense } from '../types/expense';
-// Import thêm hàm search
-import { getDeletedExpenses, searchDeletedExpenses } from '../db/database'; 
+import {
+  getDeletedExpenses,
+  searchDeletedExpenses,
+  restoreExpense, // <-- Import hàm restoreExpense
+} from '../db/database';
 
 const TrashScreen = () => {
   const [deletedExpenses, setDeletedExpenses] = useState<Expense[]>([]);
-  const [searchQuery, setSearchQuery] = useState(''); // State cho tìm kiếm
+  const [searchQuery, setSearchQuery] = useState('');
+  const [refreshing, setRefreshing] = useState(false);
 
-  // Hàm tải danh sách notes đã xóa
+  // Hàm tải danh sách
   const loadDeletedExpenses = useCallback(() => {
     console.log('Loading deleted expenses...');
-    // Câu 6b: Dùng hàm search nếu có query
     const data = searchQuery
       ? searchDeletedExpenses(searchQuery)
       : getDeletedExpenses();
     setDeletedExpenses(data);
-  }, [searchQuery]); // Thêm searchQuery làm dependency
+  }, [searchQuery]);
 
-  // Tự động load lại notes mỗi khi màn hình này được focus
   useFocusEffect(loadDeletedExpenses);
 
-  // Xử lý khi nhấn giữ (Chuẩn bị cho Câu 8)
+  const onRefresh = useCallback(() => {
+    console.log('Refreshing deleted expenses...');
+    setRefreshing(true);
+    loadDeletedExpenses();
+    setRefreshing(false);
+  }, [loadDeletedExpenses]);
+
+  // Cập nhật (Câu 8): Xử lý khi nhấn giữ
   const handleLongPress = (id: number) => {
-    console.log('Restore menu for expense:', id);
-    Alert.alert('Khôi phục', 'Bạn có muốn khôi phục khoản này? (Chức năng Câu 8)');
+    // Câu 8a: Xuất hiện menu khôi phục
+    Alert.alert(
+      'Khôi phục khoản thu/chi',
+      'Bạn có muốn khôi phục khoản này?',
+      [
+        {
+          text: 'Hủy',
+          style: 'cancel',
+        },
+        {
+          text: 'Khôi phục',
+          style: 'default', // 'default' thay vì 'destructive'
+          onPress: () => {
+            restoreExpense(id); // Gọi hàm khôi phục
+            loadDeletedExpenses(); // Tải lại danh sách (item sẽ biến mất khỏi thùng rác)
+          },
+        },
+      ]
+    );
   };
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom', 'left', 'right']}>
-      {/* Câu 6b: Thêm tính năng tìm kiếm */}
       <TextInput
         style={styles.searchBar}
         placeholder="Tìm kiếm trong thùng rác..."
@@ -50,6 +83,7 @@ const TrashScreen = () => {
               Alert.alert('Thông báo', 'Bạn không thể sửa khoản đã xóa.');
             }}
             onLongPress={() => {
+              // Câu 8: Gọi hàm xử lý nhấn giữ
               handleLongPress(item.id);
             }}
           />
@@ -59,11 +93,20 @@ const TrashScreen = () => {
             <Text style={styles.emptyText}>Thùng rác trống hoặc không tìm thấy.</Text>
           </View>
         }
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={['#007AFF']}
+            tintColor={'#007AFF'}
+          />
+        }
       />
     </SafeAreaView>
   );
 };
 
+// ... (styles giữ nguyên)
 const styles = StyleSheet.create({
   container: {
     flex: 1,

@@ -134,4 +134,18 @@ export const searchDeletedExpenses = (query: string): Expense[] => {
     return [];
   }
 };
+
+//cau 08
+export const restoreExpense = (id: number) => {
+  console.log('Restoring expense:', id);
+  try {
+    db.runSync(
+      'UPDATE expenses SET isDeleted = 0 WHERE id = ?',
+      [id]
+    );
+    console.log('Expense restored successfully');
+  } catch (error) {
+    console.error(`Error restoring expense with id ${id}: `, error);
+  }
+};
 export { db };

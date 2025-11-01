@@ -1,34 +1,56 @@
 // src/screens/HomeScreen.tsx
 import React, { useLayoutEffect, useState, useCallback } from 'react';
-import { StyleSheet, FlatList, Button, View, Text, Alert, TextInput } from 'react-native'; // Import TextInput
+import {
+  StyleSheet,
+  FlatList,
+  Button,
+  View,
+  Text,
+  Alert,
+  TextInput,
+  RefreshControl, // <-- Import RefreshControl
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types/navigation';
 import ExpenseItem from '../components/ExpenseItem';
 import { Expense } from '../types/expense';
-// Import thêm hàm search
-import { getAllExpenses, softDeleteExpense, searchActiveExpenses } from '../db/database'; 
+import { getAllExpenses, softDeleteExpense, searchActiveExpenses } from '../db/database';
 
 type HomeScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'HomeScreen'>;
 
 const HomeScreen = () => {
   const navigation = useNavigation<HomeScreenNavigationProp>();
   const [expenses, setExpenses] = useState<Expense[]>([]);
-  const [searchQuery, setSearchQuery] = useState(''); // State cho tìm kiếm
+  const [searchQuery, setSearchQuery] = useState('');
+  
+  // Mới (Câu 7): State cho RefreshControl
+  const [refreshing, setRefreshing] = useState(false);
 
   // Hàm tải danh sách
   const loadExpenses = useCallback(() => {
     console.log('Loading active expenses...');
-    // Câu 6a: Dùng hàm search nếu có query
     const data = searchQuery
       ? searchActiveExpenses(searchQuery)
       : getAllExpenses();
     setExpenses(data);
-  }, [searchQuery]); // Thêm searchQuery làm dependency
+  }, [searchQuery]);
 
-  // Tự động load lại mỗi khi màn hình được focus (hoặc query thay đổi)
+  // Tự động load lại
   useFocusEffect(loadExpenses);
+
+  // Mới (Câu 7): Hàm xử lý khi kéo xuống để làm mới
+  const onRefresh = useCallback(() => {
+    console.log('Refreshing expenses...');
+    setRefreshing(true); // Bắt đầu animation
+    
+    // Câu 7b: Gọi lại function GET (loadExpenses)
+    loadExpenses(); 
+    
+    // Kết thúc animation
+    setRefreshing(false);
+  }, [loadExpenses]); // Dependency là hàm loadExpenses
 
   // Header (giữ nguyên)
   useLayoutEffect(() => {
@@ -49,7 +71,7 @@ const HomeScreen = () => {
     });
   }, [navigation]);
 
-  // Xử lý nhấn giữ (Câu 5)
+  // Xử lý nhấn giữ (giữ nguyên)
   const handleLongPress = (id: number) => {
     Alert.alert(
       'Xác nhận xóa',
@@ -61,7 +83,7 @@ const HomeScreen = () => {
           style: 'destructive',
           onPress: () => {
             softDeleteExpense(id);
-            loadExpenses(); // Tải lại danh sách
+            loadExpenses();
           },
         },
       ]
@@ -70,12 +92,11 @@ const HomeScreen = () => {
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom', 'left', 'right']}>
-      {/* Câu 6a: Thêm tính năng tìm kiếm */}
       <TextInput
         style={styles.searchBar}
         placeholder="Tìm kiếm theo tiêu đề..."
         value={searchQuery}
-        onChangeText={setSearchQuery} // Cập nhật state khi gõ
+        onChangeText={setSearchQuery}
       />
       <FlatList
         data={expenses}
@@ -96,15 +117,25 @@ const HomeScreen = () => {
             <Text style={styles.emptyText}>Không tìm thấy kết quả.</Text>
           </View>
         }
+        // Câu 7a: Thêm RefreshControl
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={['#007AFF']} // Màu của animation (iOS/Android)
+            tintColor={'#007AFF'} // Màu của animation (iOS)
+          />
+        }
       />
     </SafeAreaView>
   );
 };
 
+// ... (styles giữ nguyên)
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#f5f5ff5',
   },
   headerLeftButtons: {
       flexDirection: 'row',
