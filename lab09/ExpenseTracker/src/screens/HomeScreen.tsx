@@ -1,166 +1,147 @@
-// src/screens/HomeScreen.tsx
-import React, { useLayoutEffect, useState, useCallback } from 'react';
+// src/screens/SyncScreen.tsx
+import React, { useState } from 'react';
 import {
-  StyleSheet,
-  FlatList,
-  Button,
   View,
   Text,
-  Alert,
   TextInput,
-  RefreshControl, // <-- Import RefreshControl
+  Button,
+  StyleSheet,
+  Alert,
+  ActivityIndicator, // Để hiển thị loading
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation, useFocusEffect } from '@react-navigation/native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { RootStackParamList } from '../types/navigation';
-import ExpenseItem from '../components/ExpenseItem';
-import { Expense } from '../types/expense';
-import { getAllExpenses, softDeleteExpense, searchActiveExpenses } from '../db/database';
+import axios from 'axios'; // Import axios
+import { getAllExpenses } from '../db/database'; 
 
-type HomeScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'HomeScreen'>;
+const SyncScreen = () => {
+  // State lưu link API (Câu 9b)
+  const [apiUrl, setApiUrl] = useState('');
+  // State cho trạng thái loading
+  const [isLoading, setIsLoading] = useState(false);
 
-const HomeScreen = () => {
-  const navigation = useNavigation<HomeScreenNavigationProp>();
-  const [expenses, setExpenses] = useState<Expense[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
-  
-  // Mới (Câu 7): State cho RefreshControl
-  const [refreshing, setRefreshing] = useState(false);
+  // Câu 9a: Hàm xử lý khi nhấn nút "Đồng bộ"
+  const handleSync = async () => {
+    // 1. Kiểm tra link
+    if (apiUrl.trim() === '' || !apiUrl.includes('https://')) {
+      Alert.alert('Lỗi', 'Vui lòng dán link API (mockapi.io) hợp lệ.');
+      return;
+    }
 
-  // Hàm tải danh sách
-  const loadExpenses = useCallback(() => {
-    console.log('Loading active expenses...');
-    const data = searchQuery
-      ? searchActiveExpenses(searchQuery)
-      : getAllExpenses();
-    setExpenses(data);
-  }, [searchQuery]);
+    setIsLoading(true);
 
-  // Tự động load lại
-  useFocusEffect(loadExpenses);
+    try {
+      // 2. Lấy tất cả expense đang hoạt động từ SQLite
+      const localExpenses = getAllExpenses();
 
-  // Mới (Câu 7): Hàm xử lý khi kéo xuống để làm mới
-  const onRefresh = useCallback(() => {
-    console.log('Refreshing expenses...');
-    setRefreshing(true); // Bắt đầu animation
-    
-    // Câu 7b: Gọi lại function GET (loadExpenses)
-    loadExpenses(); 
-    
-    // Kết thúc animation
-    setRefreshing(false);
-  }, [loadExpenses]); // Dependency là hàm loadExpenses
+      // ======================================================
+      // Câu 9a: Xóa toàn bộ data trong API
+      // ======================================================
+      console.log('Bắt đầu xóa data cũ trên API...');
+      // 2.1. Lấy (GET) tất cả data cũ từ API
+      const getResponse = await axios.get(apiUrl);
+      const apiExpenses = getResponse.data;
 
-  // Header (giữ nguyên)
-  useLayoutEffect(() => {
-    navigation.setOptions({
-      headerRight: () => (
-        <Button
-          title="Add"
-          onPress={() => navigation.navigate('ExpenseDetailScreen', {})}
-        />
-      ),
-      headerLeft: () => (
-         <View style={styles.headerLeftButtons}>
-            <Button title="Trash" onPress={() => navigation.navigate('TrashScreen')} />
-            <Button title="Stats" onPress={() => navigation.navigate('StatisticsScreen')} />
-            <Button title="Sync" onPress={() => navigation.navigate('SyncScreen')} />
-         </View>
-      )
-    });
-  }, [navigation]);
+      // 2.2. Tạo mảng các promise DELETE
+      const deletePromises = apiExpenses.map((expense: any) =>
+        axios.delete(`${apiUrl}/${expense.id}`)
+      );
+      // Chờ tất cả xóa xong
+      await Promise.all(deletePromises);
+      console.log(`Đã xóa ${apiExpenses.length} khoản cũ trên API.`);
 
-  // Xử lý nhấn giữ (giữ nguyên)
-  const handleLongPress = (id: number) => {
-    Alert.alert(
-      'Xác nhận xóa',
-      'Bạn có chắc muốn xóa khoản thu/chi này?',
-      [
-        { text: 'Hủy', style: 'cancel' },
-        {
-          text: 'Xóa',
-          style: 'destructive',
-          onPress: () => {
-            softDeleteExpense(id);
-            loadExpenses();
-          },
-        },
-      ]
-    );
+      // ======================================================
+      // Câu 9a: Copy toàn bộ thống kê (data mới) lên API
+      // ======================================================
+      if (localExpenses.length === 0) {
+        Alert.alert('Thông báo', 'Đã xóa data API. Không có data local để đẩy lên.');
+        setIsLoading(false);
+        return;
+      }
+
+      console.log(`Bắt đầu đẩy ${localExpenses.length} khoản mới lên API...`);
+      // 3. Tạo mảng các promise POST (đẩy data local lên)
+      const postPromises = localExpenses.map((expense) => {
+        // Chỉ gửi 4 trường như schema của mockapi
+        const payload = {
+          title: expense.title,
+          amount: expense.amount,
+          type: expense.type,
+          date: expense.date,
+        };
+        return axios.post(apiUrl, payload);
+      });
+
+      // Chờ tất cả đẩy lên xong
+      await Promise.all(postPromises);
+
+      // 4. Thông báo thành công
+      Alert.alert(
+        'Thành công',
+        `Đã xóa ${apiExpenses.length} khoản cũ và đồng bộ ${localExpenses.length} khoản mới lên API.`
+      );
+    } catch (error) {
+      console.error('Lỗi đồng bộ:', error);
+      Alert.alert(
+        'Lỗi',
+        'Đồng bộ thất bại. Vui lòng kiểm tra lại đường link API hoặc kết nối mạng.'
+      );
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom', 'left', 'right']}>
-      <TextInput
-        style={styles.searchBar}
-        placeholder="Tìm kiếm theo tiêu đề..."
-        value={searchQuery}
-        onChangeText={setSearchQuery}
-      />
-      <FlatList
-        data={expenses}
-        keyExtractor={(item) => item.id.toString()}
-        renderItem={({ item }) => (
-          <ExpenseItem
-            item={item}
-            onPress={() => {
-              navigation.navigate('ExpenseDetailScreen', { expenseId: item.id });
-            }}
-            onLongPress={() => {
-              handleLongPress(item.id);
-            }}
-          />
+      <View style={styles.content}>
+        <Text style={styles.label}>
+          Dán link API (resource "expenses") của bạn từ mockapi.io: 
+        </Text>
+        <TextInput
+          style={styles.input}
+          placeholder="https://68e9ece8f1eeb3f856e56122.mockapi.io/expenses"
+          value={apiUrl}
+          onChangeText={setApiUrl}
+          autoCapitalize="none"
+        />
+        {isLoading ? (
+          <ActivityIndicator size="large" color="#007AFF" />
+        ) : (
+          <Button title="XÓA và Đồng bộ Lên API" onPress={handleSync} color="#dc3545" />
         )}
-        ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>Không tìm thấy kết quả.</Text>
-          </View>
-        }
-        // Câu 7a: Thêm RefreshControl
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            colors={['#007AFF']} // Màu của animation (iOS/Android)
-            tintColor={'#007AFF'} // Màu của animation (iOS)
-          />
-        }
-      />
+         <Text style={styles.warning}>Lưu ý: Thao tác này sẽ XÓA SẠCH dữ liệu hiện có trên API trước khi tải dữ liệu mới lên.</Text>
+      </View>
     </SafeAreaView>
   );
 };
 
-// ... (styles giữ nguyên)
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5ff5',
+    backgroundColor: '#fff',
   },
-  headerLeftButtons: {
-      flexDirection: 'row',
-      gap: 8,
+  content: {
+    flex: 1,
+    padding: 16,
   },
-  searchBar: {
+  label: {
+    fontSize: 16,
+    marginBottom: 8,
+  },
+  input: {
     height: 40,
     borderColor: '#ddd',
     borderWidth: 1,
     borderRadius: 8,
-    marginHorizontal: 16,
-    marginVertical: 10,
     paddingHorizontal: 12,
     backgroundColor: '#fff',
+    marginBottom: 20,
   },
-  emptyContainer: {
-    flex: 1,
-    marginTop: 100,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  emptyText: {
-    fontSize: 16,
-    color: '#888',
-  },
+  warning: {
+      marginTop: 16,
+      fontSize: 12,
+      color: '#888',
+      textAlign: 'center'
+  }
 });
 
-export default HomeScreen;
+export default SyncScreen;
