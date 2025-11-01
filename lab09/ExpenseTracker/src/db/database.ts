@@ -59,7 +59,6 @@ export const getAllExpenses = (): Expense[] => {
 //cau 4
 export const getExpenseById = (id: number): Expense | null => {
   try {
-    // Dùng getFirstSync<Expense> để lấy 1 dòng
     const expense = db.getFirstSync<Expense>(
       'SELECT * FROM expenses WHERE id = ?',
       [id]
@@ -70,10 +69,6 @@ export const getExpenseById = (id: number): Expense | null => {
     return null;
   }
 };
-
-/**
- * Cập nhật một khoản thu/chi
- */
 
 export const updateExpense = (id: number, expense: ExpenseInput) => {
   console.log('Updating expense:', id);
@@ -88,4 +83,28 @@ export const updateExpense = (id: number, expense: ExpenseInput) => {
   }
 };
 
+export const softDeleteExpense = (id: number) => {
+  console.log('Soft deleting expense:', id);
+  try {
+    db.runSync(
+      'UPDATE expenses SET isDeleted = 1 WHERE id = ?',
+      [id]
+    );
+    console.log('Expense soft deleted successfully');
+  } catch (error) {
+    console.error(`Error soft deleting expense with id ${id}: `, error);
+  }
+};
+
+export const getDeletedExpenses = (): Expense[] => {
+  try {
+    const expenses = db.getAllSync<Expense>(
+      'SELECT * FROM expenses WHERE isDeleted = 1 ORDER BY date DESC'
+    );
+    return expenses;
+  } catch (error) {
+    console.error('Error fetching deleted expenses: ', error);
+    return [];
+  }
+};
 export { db };

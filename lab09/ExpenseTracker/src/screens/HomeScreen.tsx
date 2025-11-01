@@ -1,39 +1,31 @@
 // src/screens/HomeScreen.tsx
 import React, { useLayoutEffect, useState, useCallback } from 'react';
-import { StyleSheet, FlatList, Button, View, Text } from 'react-native'; // Import Text
+import { StyleSheet, FlatList, Button, View, Text, Alert } from 'react-native'; // Import Alert
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation, useFocusEffect } from '@react-navigation/native'; // Import useFocusEffect
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types/navigation';
 import ExpenseItem from '../components/ExpenseItem';
 import { Expense } from '../types/expense';
-import { getAllExpenses } from '../db/database'; // Import hàm lấy từ DB
+import { getAllExpenses, softDeleteExpense } from '../db/database'; // Import softDeleteExpense
 
 type HomeScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'HomeScreen'>;
 
-// Bỏ MOCK_EXPENSES
-
 const HomeScreen = () => {
   const navigation = useNavigation<HomeScreenNavigationProp>();
-
-  // State để lưu danh sách thật
   const [expenses, setExpenses] = useState<Expense[]>([]);
 
-  // Hàm tải danh sách từ DB
-  const loadExpenses = () => {
+  // Hàm tải danh sách (chưa bị xóa)
+  const loadExpenses = useCallback(() => {
     console.log('Loading expenses from DB...');
-    const data = getAllExpenses(); // Lấy dữ liệu thật
+    const data = getAllExpenses();
     setExpenses(data);
-  };
+  }, []);
 
   // Tự động load lại mỗi khi màn hình được focus
-  useFocusEffect(
-    useCallback(() => {
-      loadExpenses();
-    }, [])
-  );
+  useFocusEffect(loadExpenses);
 
-  // Thêm các nút điều hướng vào header (đã làm ở Câu 1)
+  // Header (giữ nguyên)
   useLayoutEffect(() => {
     navigation.setOptions({
       headerRight: () => (
@@ -52,25 +44,48 @@ const HomeScreen = () => {
     });
   }, [navigation]);
 
+  // Mới (Câu 5): Xử lý khi nhấn giữ item
+  const handleLongPress = (id: number) => {
+    // Câu 5a: Xuất hiện Menu (Alert)
+    Alert.alert(
+      'Xác nhận xóa',
+      'Bạn có chắc muốn xóa khoản thu/chi này?',
+      [
+        {
+          text: 'Hủy',
+          style: 'cancel',
+        },
+        {
+          text: 'Xóa',
+          style: 'destructive',
+          // Câu 5b: Khi bấm "Xóa"
+          onPress: () => {
+            softDeleteExpense(id); // Gọi function soft delete
+            loadExpenses(); // Tải lại danh sách
+          },
+        },
+      ]
+    );
+  };
+
   return (
     <SafeAreaView style={styles.container} edges={['bottom', 'left', 'right']}>
       <FlatList
-        data={expenses} // Sử dụng dữ liệu thật từ state
+        data={expenses}
         keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => (
           <ExpenseItem
             item={item}
             onPress={() => {
-              // Câu 4a:
+              // Câu 4: Chuyển sang màn hình sửa
               navigation.navigate('ExpenseDetailScreen', { expenseId: item.id });
             }}
             onLongPress={() => {
-              // Câu 5a:
-              console.log('Long pressed on expense:', item.id);
+              // Câu 5: Gọi hàm xử lý nhấn giữ
+              handleLongPress(item.id);
             }}
           />
         )}
-        // Hiển thị thông báo nếu không có dữ liệu
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <Text style={styles.emptyText}>Chưa có khoản thu/chi nào.</Text>
@@ -82,6 +97,7 @@ const HomeScreen = () => {
   );
 };
 
+// ... (phần styles giữ nguyên)
 const styles = StyleSheet.create({
   container: {
     flex: 1,
