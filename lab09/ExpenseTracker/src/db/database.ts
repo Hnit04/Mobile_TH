@@ -82,7 +82,7 @@ export const updateExpense = (id: number, expense: ExpenseInput) => {
     console.error(`Error updating expense with id ${id}: `, error);
   }
 };
-
+//cau05
 export const softDeleteExpense = (id: number) => {
   console.log('Soft deleting expense:', id);
   try {
@@ -104,6 +104,33 @@ export const getDeletedExpenses = (): Expense[] => {
     return expenses;
   } catch (error) {
     console.error('Error fetching deleted expenses: ', error);
+    return [];
+  }
+};
+
+//cau 06
+export const searchActiveExpenses = (query: string): Expense[] => {
+  try {
+    const expenses = db.getAllSync<Expense>(
+      'SELECT * FROM expenses WHERE isDeleted = 0 AND title LIKE ?',
+      [`%${query}%`]
+    );
+    return expenses;
+  } catch (error) {
+    console.error('Error searching active expenses: ', error);
+    return [];
+  }
+};
+
+export const searchDeletedExpenses = (query: string): Expense[] => {
+  try {
+    const expenses = db.getAllSync<Expense>(
+      'SELECT * FROM expenses WHERE isDeleted = 1 AND title LIKE ?',
+      [`%${query}%`]
+    );
+    return expenses;
+  } catch (error) {
+    console.error('Error searching deleted expenses: ', error);
     return [];
   }
 };

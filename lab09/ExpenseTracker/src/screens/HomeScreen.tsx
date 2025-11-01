@@ -1,28 +1,33 @@
 // src/screens/HomeScreen.tsx
 import React, { useLayoutEffect, useState, useCallback } from 'react';
-import { StyleSheet, FlatList, Button, View, Text, Alert } from 'react-native'; // Import Alert
+import { StyleSheet, FlatList, Button, View, Text, Alert, TextInput } from 'react-native'; // Import TextInput
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types/navigation';
 import ExpenseItem from '../components/ExpenseItem';
 import { Expense } from '../types/expense';
-import { getAllExpenses, softDeleteExpense } from '../db/database'; // Import softDeleteExpense
+// Import thêm hàm search
+import { getAllExpenses, softDeleteExpense, searchActiveExpenses } from '../db/database'; 
 
 type HomeScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'HomeScreen'>;
 
 const HomeScreen = () => {
   const navigation = useNavigation<HomeScreenNavigationProp>();
   const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [searchQuery, setSearchQuery] = useState(''); // State cho tìm kiếm
 
-  // Hàm tải danh sách (chưa bị xóa)
+  // Hàm tải danh sách
   const loadExpenses = useCallback(() => {
-    console.log('Loading expenses from DB...');
-    const data = getAllExpenses();
+    console.log('Loading active expenses...');
+    // Câu 6a: Dùng hàm search nếu có query
+    const data = searchQuery
+      ? searchActiveExpenses(searchQuery)
+      : getAllExpenses();
     setExpenses(data);
-  }, []);
+  }, [searchQuery]); // Thêm searchQuery làm dependency
 
-  // Tự động load lại mỗi khi màn hình được focus
+  // Tự động load lại mỗi khi màn hình được focus (hoặc query thay đổi)
   useFocusEffect(loadExpenses);
 
   // Header (giữ nguyên)
@@ -44,23 +49,18 @@ const HomeScreen = () => {
     });
   }, [navigation]);
 
-  // Mới (Câu 5): Xử lý khi nhấn giữ item
+  // Xử lý nhấn giữ (Câu 5)
   const handleLongPress = (id: number) => {
-    // Câu 5a: Xuất hiện Menu (Alert)
     Alert.alert(
       'Xác nhận xóa',
       'Bạn có chắc muốn xóa khoản thu/chi này?',
       [
-        {
-          text: 'Hủy',
-          style: 'cancel',
-        },
+        { text: 'Hủy', style: 'cancel' },
         {
           text: 'Xóa',
           style: 'destructive',
-          // Câu 5b: Khi bấm "Xóa"
           onPress: () => {
-            softDeleteExpense(id); // Gọi function soft delete
+            softDeleteExpense(id);
             loadExpenses(); // Tải lại danh sách
           },
         },
@@ -70,6 +70,13 @@ const HomeScreen = () => {
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom', 'left', 'right']}>
+      {/* Câu 6a: Thêm tính năng tìm kiếm */}
+      <TextInput
+        style={styles.searchBar}
+        placeholder="Tìm kiếm theo tiêu đề..."
+        value={searchQuery}
+        onChangeText={setSearchQuery} // Cập nhật state khi gõ
+      />
       <FlatList
         data={expenses}
         keyExtractor={(item) => item.id.toString()}
@@ -77,19 +84,16 @@ const HomeScreen = () => {
           <ExpenseItem
             item={item}
             onPress={() => {
-              // Câu 4: Chuyển sang màn hình sửa
               navigation.navigate('ExpenseDetailScreen', { expenseId: item.id });
             }}
             onLongPress={() => {
-              // Câu 5: Gọi hàm xử lý nhấn giữ
               handleLongPress(item.id);
             }}
           />
         )}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>Chưa có khoản thu/chi nào.</Text>
-            <Text style={styles.emptyText}>Nhấn "Add" để thêm mới.</Text>
+            <Text style={styles.emptyText}>Không tìm thấy kết quả.</Text>
           </View>
         }
       />
@@ -97,7 +101,6 @@ const HomeScreen = () => {
   );
 };
 
-// ... (phần styles giữ nguyên)
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -106,6 +109,16 @@ const styles = StyleSheet.create({
   headerLeftButtons: {
       flexDirection: 'row',
       gap: 8,
+  },
+  searchBar: {
+    height: 40,
+    borderColor: '#ddd',
+    borderWidth: 1,
+    borderRadius: 8,
+    marginHorizontal: 16,
+    marginVertical: 10,
+    paddingHorizontal: 12,
+    backgroundColor: '#fff',
   },
   emptyContainer: {
     flex: 1,
