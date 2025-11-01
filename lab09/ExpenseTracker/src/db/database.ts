@@ -56,6 +56,36 @@ export const getAllExpenses = (): Expense[] => {
     return []; 
   }
 };
+//cau 4
+export const getExpenseById = (id: number): Expense | null => {
+  try {
+    // Dùng getFirstSync<Expense> để lấy 1 dòng
+    const expense = db.getFirstSync<Expense>(
+      'SELECT * FROM expenses WHERE id = ?',
+      [id]
+    );
+    return expense || null;
+  } catch (error) {
+    console.error(`Error fetching expense with id ${id}: `, error);
+    return null;
+  }
+};
 
+/**
+ * Cập nhật một khoản thu/chi
+ */
+
+export const updateExpense = (id: number, expense: ExpenseInput) => {
+  console.log('Updating expense:', id);
+  try {
+    db.runSync(
+      'UPDATE expenses SET title = ?, amount = ?, type = ? WHERE id = ?',
+      [expense.title, expense.amount, expense.type, id]
+    );
+    console.log('Expense updated successfully');
+  } catch (error) {
+    console.error(`Error updating expense with id ${id}: `, error);
+  }
+};
 
 export { db };
