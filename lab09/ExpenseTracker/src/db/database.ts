@@ -1,10 +1,11 @@
-
+// src/db/database.ts
 import * as SQLite from 'expo-sqlite';
-import { ExpenseType } from '../types/expense'; 
+import dayjs from 'dayjs'; 
+import { Expense, ExpenseInput } from '../types/expense'; 
 
 const db = SQLite.openDatabaseSync('expenses.db');
 
-const initDatabase = () => {
+export const initDatabase = () => {
   try {
     db.execSync(`
       CREATE TABLE IF NOT EXISTS expenses (
@@ -23,4 +24,38 @@ const initDatabase = () => {
   }
 };
 
-export { db, initDatabase };
+//cau 3
+/**
+ * Thêm một khoản thu/chi mới vào database
+ */
+export const addExpense = (expense: ExpenseInput) => {
+  console.log('Adding expense:', expense.title);
+  try {
+    const date = dayjs().toISOString();
+
+    db.runSync(
+      'INSERT INTO expenses (title, amount, type, date) VALUES (?, ?, ?, ?)',
+      [expense.title, expense.amount, expense.type, date]
+    );
+    console.log('Expense added successfully');
+  } catch (error) {
+    console.error('Error adding expense: ', error);
+  }
+};
+
+
+export const getAllExpenses = (): Expense[] => {
+  try {
+ 
+    const expenses = db.getAllSync<Expense>(
+      'SELECT * FROM expenses WHERE isDeleted = 0 ORDER BY date DESC'
+    );
+    return expenses;
+  } catch (error) {
+    console.error('Error fetching expenses: ', error);
+    return []; 
+  }
+};
+
+
+export { db };
