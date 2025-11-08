@@ -16,28 +16,28 @@ interface TodoModalProps {
   visible: boolean;
   onClose: () => void;
   onSave: (title: string) => void;
-  // (Chúng ta sẽ thêm 'initialTodo' ở Câu 6 để Sửa)
+  
 }
 
 const TodoModal: React.FC<TodoModalProps> = ({ visible, onClose, onSave }) => {
   const [title, setTitle] = useState('');
 
   const handleSave = () => {
-    // Câu 4b: Validate: title không rỗng
+
     if (title.trim() === '') {
       Alert.alert('Lỗi', 'Tiêu đề không được để trống.');
       return;
     }
     
-    onSave(title); // Gửi title ra App.tsx
-    setTitle(''); // Xóa text
+    onSave(title);
+    setTitle(''); 
   };
 
   return (
     <Modal
       visible={visible}
       animationType="slide"
-      transparent={true} // Nền trong suốt
+      transparent={true} 
       onRequestClose={onClose}
     >
       {/* KeyboardAvoidingView để bàn phím không che mất input */}

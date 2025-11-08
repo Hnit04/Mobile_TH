@@ -4,14 +4,14 @@ import {
   StyleSheet,
   Text,
   View,
-  TouchableOpacity, // Import nút
-  Alert, // Import Alert
+  TouchableOpacity,
+  Alert,
 } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { initDatabase, db } from './src/db/db';
 import TodoList from './src/components/TodoList';
 import { Todo } from './src/types/todo';
-import TodoModal from './src/components/TodoModal'; // <-- Import Modal
+import TodoModal from './src/components/TodoModal';
 
 // Hàm fetchTodos (giữ nguyên)
 const fetchTodos = (): Todo[] => {
@@ -27,8 +27,6 @@ const fetchTodos = (): Todo[] => {
 export default function App() {
   const [dbInitialized, setDbInitialized] = useState(false);
   const [todos, setTodos] = useState<Todo[]>([]);
-  
-  // Mới (Câu 4): State để quản lý Modal
   const [modalVisible, setModalVisible] = useState(false);
 
   useEffect(() => {
@@ -42,29 +40,47 @@ export default function App() {
     }
   }, []);
 
-  // Hàm để làm mới danh sách (giữ nguyên)
+  // Hàm để làm mới danh sách
   const refreshTodos = useCallback(() => {
     setTodos(fetchTodos());
   }, []);
 
-  // Mới (Câu 4a): Hàm xử lý khi lưu từ Modal
+  // Hàm xử lý Thêm mới (Câu 4)
   const handleSaveTodo = (title: string) => {
     try {
       const now = Date.now();
-      // Chạy INSERT
       db.runSync(
         'INSERT INTO todos (title, created_at) VALUES (?, ?)',
         [title, now]
       );
-
-      // Câu 4c: auto refresh list
       refreshTodos();
-      setModalVisible(false); // Đóng modal
+      setModalVisible(false);
     } catch (error) {
       console.error('Failed to add todo:', error);
       Alert.alert('Lỗi', 'Không thể thêm công việc.');
     }
   };
+
+  // Mới (Câu 5): Hàm xử lý Toggle
+  const handleToggleTodo = (id: number, currentDoneState: 0 | 1) => {
+    try {
+      // Tính toán trạng thái mới
+      const newDoneState = currentDoneState === 0 ? 1 : 0;
+      
+      // Chạy lệnh UPDATE
+      db.runSync(
+        'UPDATE todos SET done = ? WHERE id = ?',
+        [newDoneState, id]
+      );
+
+      // Câu 5c: Cập nhật danh sách ngay
+      refreshTodos();
+    } catch (error) {
+      console.error('Failed to toggle todo:', error);
+      Alert.alert('Lỗi', 'Không thể cập nhật công việc.');
+    }
+  };
+
 
   if (!dbInitialized) {
     return (
@@ -78,11 +94,13 @@ export default function App() {
     <SafeAreaProvider>
       <SafeAreaView style={styles.container}>
         <Text style={styles.title}>Todo Notes</Text>
-        <TodoList todos={todos} /> 
+        
+        {/* Truyền hàm onToggle xuống TodoList */}
+        <TodoList todos={todos} onToggle={handleToggleTodo} /> 
 
-        {/* Nút "+" (Câu 4a) */}
+        {/* Nút "+" (Câu 4) */}
         <TouchableOpacity
-          style={styles.fab} // Nút tròn
+          style={styles.fab}
           onPress={() => setModalVisible(true)}
         >
           <Text style={styles.fabText}>+</Text>
@@ -100,7 +118,7 @@ export default function App() {
   );
 }
 
-// Cập nhật styles
+// ... (styles giữ nguyên)
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -120,15 +138,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  // Style cho nút "+"
   fab: {
-    position: 'absolute', // Nằm đè lên
+    position: 'absolute',
     bottom: 30,
     right: 30,
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: '#007AFF', // Màu xanh
+    backgroundColor: '#007AFF',
     justifyContent: 'center',
     alignItems: 'center',
     elevation: 8,
@@ -140,7 +157,7 @@ const styles = StyleSheet.create({
   fabText: {
     fontSize: 30,
     color: 'white',
-    lineHeight: 30, // Căn chỉnh dấu +
+    lineHeight: 30,
     paddingBottom: 2,
   },
 });
