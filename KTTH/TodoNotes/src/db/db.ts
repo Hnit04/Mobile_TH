@@ -18,7 +18,7 @@ const initDatabase = () => {
     `);
     console.log('Database and table initialized successfully.');
 
-    // Câu 2b: (Tùy chọn) Seed 1-2 bản ghi mẫu nếu bảng trống
+    
     const firstRun = db.getFirstSync<{ count: number }>(
       'SELECT COUNT(*) as count FROM todos'
     );
@@ -40,6 +40,5 @@ const initDatabase = () => {
   }
 };
 
-// Sửa dòng export ở cuối file:
-// Export cả 'db' và 'initDatabase' cùng lúc
+
 export { db, initDatabase };

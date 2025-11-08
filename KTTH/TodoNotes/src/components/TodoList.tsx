@@ -7,10 +7,11 @@ import TodoItem from './TodoItem';
 interface TodoListProps {
   todos: Todo[];
   onToggle: (id: number, currentDoneState: 0 | 1) => void;
-  onLongPress: (todo: Todo) => void; // <-- Thêm prop
+  onLongPress: (todo: Todo) => void;
+  onDelete: (id: number) => void; // <-- Thêm prop
 }
 
-const TodoList: React.FC<TodoListProps> = ({ todos, onToggle, onLongPress }) => {
+const TodoList: React.FC<TodoListProps> = ({ todos, onToggle, onLongPress, onDelete }) => {
   return (
     <View style={styles.container}>
       <FlatList
@@ -20,7 +21,8 @@ const TodoList: React.FC<TodoListProps> = ({ todos, onToggle, onLongPress }) => 
           <TodoItem
             todo={item}
             onToggle={onToggle}
-            onLongPress={onLongPress} // <-- Truyền xuống
+            onLongPress={onLongPress}
+            onDelete={onDelete} // <-- Truyền xuống
           />
         )}
         ListEmptyComponent={

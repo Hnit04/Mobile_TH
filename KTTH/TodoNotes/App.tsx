@@ -5,7 +5,7 @@ import {
   Text,
   View,
   TouchableOpacity,
-  Alert,
+  Alert, // Alert đã được import
 } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { initDatabase, db } from './src/db/db';
@@ -27,8 +27,6 @@ export default function App() {
   const [dbInitialized, setDbInitialized] = useState(false);
   const [todos, setTodos] = useState<Todo[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
-
-  // Mới (Câu 6): State cho công việc đang sửa
   const [editingTodo, setEditingTodo] = useState<Todo | null>(null);
 
   useEffect(() => {
@@ -83,22 +81,56 @@ export default function App() {
     }
   };
 
-  // Mới (Câu 6): Hàm xử lý khi nhấn giữ
+
   const handleLongPressTodo = (todo: Todo) => {
-    setEditingTodo(todo); // Set công việc đang sửa
-    setModalVisible(true); // Mở modal
+    setEditingTodo(todo); 
+    setModalVisible(true);
   };
 
-  // Mới (Câu 6): Hàm mở modal để Thêm mới
+  // =======================================================
+  // HÀM MỚI (Câu 7)
+  // =======================================================
+  const handleDeleteTodo = (id: number) => {
+    // Câu 7a: Alert xác nhận
+    Alert.alert(
+      'Xác nhận xóa',
+      'Bạn có chắc muốn xóa công việc này?',
+      [
+        // Nút Hủy
+        {
+          text: 'Hủy',
+          style: 'cancel',
+        },
+        // Nút Xóa
+        {
+          text: 'Xóa',
+          style: 'destructive',
+          onPress: () => {
+            try {
+              // Chạy lệnh DELETE
+              db.runSync('DELETE FROM todos WHERE id = ?', [id]);
+              // Câu 7b: Cập nhật danh sách
+              refreshTodos();
+            } catch (error) {
+              console.error('Failed to delete todo:', error);
+              Alert.alert('Lỗi', 'Không thể xóa công việc.');
+            }
+          },
+        },
+      ]
+    );
+  };
+  // =======================================================
+
+
   const openAddModal = () => {
-    setEditingTodo(null); // Đảm bảo không có gì đang sửa
+    setEditingTodo(null); 
     setModalVisible(true);
   };
   
-  // Mới (Câu 6): Hàm đóng modal (dọn dẹp)
   const closeModal = () => {
     setModalVisible(false);
-    setEditingTodo(null); // Luôn dọn dẹp
+    setEditingTodo(null);
   };
 
   if (!dbInitialized) {
@@ -117,7 +149,8 @@ export default function App() {
         <TodoList
           todos={todos}
           onToggle={handleToggleTodo}
-          onLongPress={handleLongPressTodo} // Truyền hàm
+          onLongPress={handleLongPressTodo}
+          onDelete={handleDeleteTodo} // <-- Truyền hàm
         /> 
 
         {/* Nút "+" (Câu 4) */}
@@ -145,7 +178,7 @@ export default function App() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#f5f5ff5',
   },
   title: {
     fontSize: 24,
