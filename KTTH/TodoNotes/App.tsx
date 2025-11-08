@@ -13,7 +13,6 @@ import TodoList from './src/components/TodoList';
 import { Todo } from './src/types/todo';
 import TodoModal from './src/components/TodoModal';
 
-// Hàm fetchTodos (giữ nguyên)
 const fetchTodos = (): Todo[] => {
   try {
     const allRows = db.getAllSync<Todo>('SELECT * FROM todos ORDER BY created_at DESC');
@@ -29,6 +28,9 @@ export default function App() {
   const [todos, setTodos] = useState<Todo[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
 
+  // Mới (Câu 6): State cho công việc đang sửa
+  const [editingTodo, setEditingTodo] = useState<Todo | null>(null);
+
   useEffect(() => {
     try {
       initDatabase();
@@ -40,40 +42,40 @@ export default function App() {
     }
   }, []);
 
-  // Hàm để làm mới danh sách
   const refreshTodos = useCallback(() => {
     setTodos(fetchTodos());
   }, []);
 
-  // Hàm xử lý Thêm mới (Câu 4)
-  const handleSaveTodo = (title: string) => {
+  // Cập nhật (Câu 6): Xử lý cả Thêm (Câu 4) và Sửa (Câu 6)
+  const handleSaveTodo = (title: string, id?: number) => {
     try {
-      const now = Date.now();
-      db.runSync(
-        'INSERT INTO todos (title, created_at) VALUES (?, ?)',
-        [title, now]
-      );
-      refreshTodos();
-      setModalVisible(false);
+      if (id) {
+        // Câu 6: Chế độ Sửa (UPDATE)
+        db.runSync(
+          'UPDATE todos SET title = ? WHERE id = ?',
+          [title, id]
+        );
+      } else {
+        // Câu 4: Chế độ Thêm mới (INSERT)
+        const now = Date.now();
+        db.runSync(
+          'INSERT INTO todos (title, created_at) VALUES (?, ?)',
+          [title, now]
+        );
+      }
+      refreshTodos(); // Làm mới danh sách
+      closeModal(); // Đóng modal
     } catch (error) {
-      console.error('Failed to add todo:', error);
-      Alert.alert('Lỗi', 'Không thể thêm công việc.');
+      console.error('Failed to save todo:', error);
+      Alert.alert('Lỗi', 'Không thể lưu công việc.');
     }
   };
 
-  // Mới (Câu 5): Hàm xử lý Toggle
+  // Hàm xử lý Toggle (Câu 5)
   const handleToggleTodo = (id: number, currentDoneState: 0 | 1) => {
     try {
-      // Tính toán trạng thái mới
       const newDoneState = currentDoneState === 0 ? 1 : 0;
-      
-      // Chạy lệnh UPDATE
-      db.runSync(
-        'UPDATE todos SET done = ? WHERE id = ?',
-        [newDoneState, id]
-      );
-
-      // Câu 5c: Cập nhật danh sách ngay
+      db.runSync('UPDATE todos SET done = ? WHERE id = ?', [newDoneState, id]);
       refreshTodos();
     } catch (error) {
       console.error('Failed to toggle todo:', error);
@@ -81,6 +83,23 @@ export default function App() {
     }
   };
 
+  // Mới (Câu 6): Hàm xử lý khi nhấn giữ
+  const handleLongPressTodo = (todo: Todo) => {
+    setEditingTodo(todo); // Set công việc đang sửa
+    setModalVisible(true); // Mở modal
+  };
+
+  // Mới (Câu 6): Hàm mở modal để Thêm mới
+  const openAddModal = () => {
+    setEditingTodo(null); // Đảm bảo không có gì đang sửa
+    setModalVisible(true);
+  };
+  
+  // Mới (Câu 6): Hàm đóng modal (dọn dẹp)
+  const closeModal = () => {
+    setModalVisible(false);
+    setEditingTodo(null); // Luôn dọn dẹp
+  };
 
   if (!dbInitialized) {
     return (
@@ -95,22 +114,26 @@ export default function App() {
       <SafeAreaView style={styles.container}>
         <Text style={styles.title}>Todo Notes</Text>
         
-        {/* Truyền hàm onToggle xuống TodoList */}
-        <TodoList todos={todos} onToggle={handleToggleTodo} /> 
+        <TodoList
+          todos={todos}
+          onToggle={handleToggleTodo}
+          onLongPress={handleLongPressTodo} // Truyền hàm
+        /> 
 
         {/* Nút "+" (Câu 4) */}
         <TouchableOpacity
           style={styles.fab}
-          onPress={() => setModalVisible(true)}
+          onPress={openAddModal} // Dùng hàm mới
         >
           <Text style={styles.fabText}>+</Text>
         </TouchableOpacity>
 
-        {/* Modal Thêm mới (Câu 4) */}
+        {/* Modal (Câu 4 & 6) */}
         <TodoModal
           visible={modalVisible}
-          onClose={() => setModalVisible(false)}
+          onClose={closeModal} // Dùng hàm mới
           onSave={handleSaveTodo}
+          initialTodo={editingTodo} // Truyền công việc đang sửa
         />
 
       </SafeAreaView>

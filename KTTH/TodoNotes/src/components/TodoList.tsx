@@ -4,21 +4,24 @@ import { View, Text, StyleSheet, FlatList } from 'react-native';
 import { Todo } from '../types/todo';
 import TodoItem from './TodoItem';
 
-// Props mới: nhận 'todos' và 'onToggle'
 interface TodoListProps {
   todos: Todo[];
   onToggle: (id: number, currentDoneState: 0 | 1) => void;
+  onLongPress: (todo: Todo) => void; // <-- Thêm prop
 }
 
-const TodoList: React.FC<TodoListProps> = ({ todos, onToggle }) => {
+const TodoList: React.FC<TodoListProps> = ({ todos, onToggle, onLongPress }) => {
   return (
     <View style={styles.container}>
       <FlatList
         data={todos}
         keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => (
-          // Truyền hàm onToggle xuống TodoItem
-          <TodoItem todo={item} onToggle={onToggle} />
+          <TodoItem
+            todo={item}
+            onToggle={onToggle}
+            onLongPress={onLongPress} // <-- Truyền xuống
+          />
         )}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>

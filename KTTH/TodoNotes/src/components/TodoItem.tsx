@@ -1,38 +1,36 @@
 // src/components/TodoItem.tsx
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native'; // Import TouchableOpacity
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Todo } from '../types/todo';
 
-// Định nghĩa Props mới
 interface TodoItemProps {
   todo: Todo;
-  onToggle: (id: number, currentDoneState: 0 | 1) => void; // Hàm callback khi nhấn
-  // (Chúng ta sẽ thêm onLongPress ở Câu 6)
+  onToggle: (id: number, currentDoneState: 0 | 1) => void;
+  onLongPress: (todo: Todo) => void; // <-- Thêm prop onLongPress
+  // (Chúng ta sẽ thêm onDelete ở Câu 7)
 }
 
-const TodoItem: React.FC<TodoItemProps> = ({ todo, onToggle }) => {
+const TodoItem: React.FC<TodoItemProps> = ({ todo, onToggle, onLongPress }) => {
   return (
-    // Câu 5a: Chạm vào item để toggle
     <TouchableOpacity
       style={styles.container}
-      onPress={() => onToggle(todo.id, todo.done)} // Gọi hàm toggle
+      onPress={() => onToggle(todo.id, todo.done)} // Câu 5: Toggle
+      onLongPress={() => onLongPress(todo)} // <-- Câu 6: Nhấn giữ để sửa
     >
       <View style={styles.textContainer}>
-        {/* Câu 5b: UI gạch ngang */}
         <Text
           style={[
             styles.title,
-            todo.done === 1 && styles.titleDone, // Áp dụng style gạch ngang
+            todo.done === 1 && styles.titleDone,
           ]}
         >
           {todo.title}
         </Text>
       </View>
-      {/* (Chúng ta sẽ thêm nút Xóa ở Câu 7) */}
     </TouchableOpacity>
   );
 };
-
+// ... (styles giữ nguyên)
 const styles = StyleSheet.create({
   container: {
     paddingVertical: 16,
@@ -41,20 +39,19 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
     flexDirection: 'row',
-    justifyContent: 'space-between', // Để dành chỗ cho nút Xóa sau
+    justifyContent: 'space-between',
     alignItems: 'center',
   },
   textContainer: {
-    flex: 1, // Đảm bảo text không bị đẩy ra ngoài
+    flex: 1,
   },
   title: {
     fontSize: 16,
     color: '#333',
   },
-  // Câu 5b: Style cho công việc đã hoàn thành
   titleDone: {
-    textDecorationLine: 'line-through', // Gạch ngang
-    color: '#aaa', // Làm mờ chữ
+    textDecorationLine: 'line-through',
+    color: '#aaa',
   },
 });
 
