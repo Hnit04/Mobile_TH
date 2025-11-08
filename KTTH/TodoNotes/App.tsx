@@ -2,25 +2,23 @@
 import React, { useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
-import { initDatabase } from './src/db/db'; // Import hàm init
+import { initDatabase } from './src/db/db';
+import TodoList from './src/components/TodoList'; // <-- Import TodoList
 
 export default function App() {
   const [dbInitialized, setDbInitialized] = useState(false);
 
   useEffect(() => {
     try {
-      // Vì initDatabase là đồng bộ (sync),
-      // chúng ta gọi nó trực tiếp.
       initDatabase();
-      setDbInitialized(true); // Báo là DB đã sẵn sàng
+      setDbInitialized(true);
       console.log('Database is ready.');
     } catch (e) {
       console.error('Failed to init DB on App mount:', e);
     }
-  }, []); // Chạy 1 lần khi app mở
+  }, []);
 
   if (!dbInitialized) {
-    // Hiển thị loading trong khi chờ DB
     return (
       <View style={styles.loadingContainer}>
         <Text>Loading database...</Text>
@@ -28,12 +26,14 @@ export default function App() {
     );
   }
 
-  // Tiêu chí đạt Câu 1: Chạy expo start OK
   return (
     <SafeAreaProvider>
       <SafeAreaView style={styles.container}>
         <Text style={styles.title}>Todo Notes</Text>
-        {/* Chúng ta sẽ thêm FlatList (Câu 3) ở đây */}
+        
+        {/* <-- Thay thế bằng TodoList */}
+        <TodoList /> 
+
       </SafeAreaView>
     </SafeAreaProvider>
   );
@@ -50,6 +50,8 @@ const styles = StyleSheet.create({
     padding: 16,
     textAlign: 'center',
     backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
   },
   loadingContainer: {
     flex: 1,
