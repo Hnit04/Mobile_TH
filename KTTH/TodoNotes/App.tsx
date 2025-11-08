@@ -5,7 +5,8 @@ import {
   Text,
   View,
   TouchableOpacity,
-  Alert, // Alert đã được import
+  Alert,
+  TextInput, // <-- Import TextInput
 } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { initDatabase, db } from './src/db/db';
@@ -13,9 +14,21 @@ import TodoList from './src/components/TodoList';
 import { Todo } from './src/types/todo';
 import TodoModal from './src/components/TodoModal';
 
-const fetchTodos = (): Todo[] => {
+// Cập nhật (Câu 8): Hàm fetchTodos giờ nhận query
+const fetchTodos = (query: string = ''): Todo[] => {
   try {
-    const allRows = db.getAllSync<Todo>('SELECT * FROM todos ORDER BY created_at DESC');
+    let sql = 'SELECT * FROM todos';
+    const params = [];
+
+    // Nếu có query, dùng LIKE
+    if (query.trim() !== '') {
+      sql += ' WHERE title LIKE ?';
+      params.push(`%${query}%`); // Dùng % để tìm kiếm
+    }
+
+    sql += ' ORDER BY created_at DESC';
+
+    const allRows = db.getAllSync<Todo>(sql, params);
     return allRows;
   } catch (error) {
     console.error('Failed to fetch todos:', error);
@@ -28,110 +41,106 @@ export default function App() {
   const [todos, setTodos] = useState<Todo[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [editingTodo, setEditingTodo] = useState<Todo | null>(null);
+  
+  // Mới (Câu 8): State cho tìm kiếm
+  const [searchQuery, setSearchQuery] = useState('');
 
+  // useEffect ban đầu (giữ nguyên)
   useEffect(() => {
     try {
       initDatabase();
       setDbInitialized(true);
-      setTodos(fetchTodos());
+      setTodos(fetchTodos()); // Lấy dữ liệu lần đầu (không có query)
       console.log('Database is ready.');
     } catch (e) {
       console.error('Failed to init DB on App mount:', e);
     }
   }, []);
 
+  // Cập nhật (Câu 8): refreshTodos giờ sẽ dùng searchQuery
   const refreshTodos = useCallback(() => {
-    setTodos(fetchTodos());
-  }, []);
+    setTodos(fetchTodos(searchQuery));
+  }, [searchQuery]); // <-- Thêm searchQuery vào dependency
 
-  // Cập nhật (Câu 6): Xử lý cả Thêm (Câu 4) và Sửa (Câu 6)
+  // Mới (Câu 8): useEffect để lọc real-time
+  // (Câu 8c: Tối ưu, chỉ chạy khi user dừng gõ 300ms)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      // Khi gõ, nó sẽ gọi hàm này
+      refreshTodos();
+    }, 300); // Debounce 300ms
+
+    // Hủy timer cũ nếu user gõ tiếp
+    return () => clearTimeout(timer);
+  }, [searchQuery, refreshTodos]); // Chạy lại khi searchQuery hoặc refreshTodos thay đổi
+
+  
+  // Cập nhật (Câu 4, 6, 7): Các hàm này giờ đã gọi
+  // refreshTodos() (vốn đã phụ thuộc vào searchQuery),
+  // nên danh sách sẽ được làm mới chính xác.
   const handleSaveTodo = (title: string, id?: number) => {
     try {
-      if (id) {
-        // Câu 6: Chế độ Sửa (UPDATE)
-        db.runSync(
-          'UPDATE todos SET title = ? WHERE id = ?',
-          [title, id]
-        );
-      } else {
-        // Câu 4: Chế độ Thêm mới (INSERT)
-        const now = Date.now();
-        db.runSync(
-          'INSERT INTO todos (title, created_at) VALUES (?, ?)',
-          [title, now]
-        );
-      }
-      refreshTodos(); // Làm mới danh sách
-      closeModal(); // Đóng modal
+        if (id) {
+          db.runSync('UPDATE todos SET title = ? WHERE id = ?', [title, id]);
+        } else {
+          const now = Date.now();
+          db.runSync('INSERT INTO todos (title, created_at) VALUES (?, ?)', [title, now]);
+        }
+        refreshTodos(); // Cập nhật danh sách (đã bao gồm filter)
+        closeModal();
     } catch (error) {
-      console.error('Failed to save todo:', error);
-      Alert.alert('Lỗi', 'Không thể lưu công việc.');
+        console.error('Failed to save todo:', error);
+        Alert.alert('Lỗi', 'Không thể lưu công việc.');
     }
   };
-
-  // Hàm xử lý Toggle (Câu 5)
+  
   const handleToggleTodo = (id: number, currentDoneState: 0 | 1) => {
     try {
-      const newDoneState = currentDoneState === 0 ? 1 : 0;
-      db.runSync('UPDATE todos SET done = ? WHERE id = ?', [newDoneState, id]);
-      refreshTodos();
+        const newDoneState = currentDoneState === 0 ? 1 : 0;
+        db.runSync('UPDATE todos SET done = ? WHERE id = ?', [newDoneState, id]);
+        refreshTodos();
     } catch (error) {
-      console.error('Failed to toggle todo:', error);
-      Alert.alert('Lỗi', 'Không thể cập nhật công việc.');
+        console.error('Failed to toggle todo:', error);
+        Alert.alert('Lỗi', 'Không thể cập nhật công việc.');
     }
   };
 
-
-  const handleLongPressTodo = (todo: Todo) => {
-    setEditingTodo(todo); 
-    setModalVisible(true);
-  };
-
-  // =======================================================
-  // HÀM MỚI (Câu 7)
-  // =======================================================
   const handleDeleteTodo = (id: number) => {
-    // Câu 7a: Alert xác nhận
     Alert.alert(
       'Xác nhận xóa',
       'Bạn có chắc muốn xóa công việc này?',
       [
-        // Nút Hủy
-        {
-          text: 'Hủy',
-          style: 'cancel',
-        },
-        // Nút Xóa
+        { text: 'Hủy', style: 'cancel' },
         {
           text: 'Xóa',
           style: 'destructive',
           onPress: () => {
             try {
-              // Chạy lệnh DELETE
-              db.runSync('DELETE FROM todos WHERE id = ?', [id]);
-              // Câu 7b: Cập nhật danh sách
-              refreshTodos();
+                db.runSync('DELETE FROM todos WHERE id = ?', [id]);
+                refreshTodos(); // Cập nhật danh sách
             } catch (error) {
-              console.error('Failed to delete todo:', error);
-              Alert.alert('Lỗi', 'Không thể xóa công việc.');
+                console.error('Failed to delete todo:', error);
+                Alert.alert('Lỗi', 'Không thể xóa công việc.');
             }
           },
         },
       ]
     );
   };
-  // =======================================================
 
-
+  const handleLongPressTodo = (todo: Todo) => {
+    setEditingTodo(todo); 
+    setModalVisible(true);
+  };
   const openAddModal = () => {
     setEditingTodo(null); 
     setModalVisible(true);
   };
-  
   const closeModal = () => {
     setModalVisible(false);
     setEditingTodo(null);
   };
+
 
   if (!dbInitialized) {
     return (
@@ -145,40 +154,46 @@ export default function App() {
     <SafeAreaProvider>
       <SafeAreaView style={styles.container}>
         <Text style={styles.title}>Todo Notes</Text>
+
+        {/* (Câu 8a): Thanh tìm kiếm */}
+        <View style={styles.searchContainer}>
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Tìm kiếm công việc..."
+            value={searchQuery}
+            onChangeText={setSearchQuery} // Cập nhật state real-time
+          />
+        </View>
         
         <TodoList
           todos={todos}
           onToggle={handleToggleTodo}
           onLongPress={handleLongPressTodo}
-          onDelete={handleDeleteTodo} // <-- Truyền hàm
+          onDelete={handleDeleteTodo}
         /> 
 
-        {/* Nút "+" (Câu 4) */}
-        <TouchableOpacity
-          style={styles.fab}
-          onPress={openAddModal} // Dùng hàm mới
-        >
+        {/* Nút "+" */}
+        <TouchableOpacity style={styles.fab} onPress={openAddModal}>
           <Text style={styles.fabText}>+</Text>
         </TouchableOpacity>
-
-        {/* Modal (Câu 4 & 6) */}
+        
+        {/* Modal */}
         <TodoModal
           visible={modalVisible}
-          onClose={closeModal} // Dùng hàm mới
+          onClose={closeModal}
           onSave={handleSaveTodo}
-          initialTodo={editingTodo} // Truyền công việc đang sửa
+          initialTodo={editingTodo}
         />
-
       </SafeAreaView>
     </SafeAreaProvider>
   );
 }
 
-// ... (styles giữ nguyên)
+// Cập nhật styles
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5ff5',
+    backgroundColor: '#f5f5f5',
   },
   title: {
     fontSize: 24,
@@ -186,9 +201,22 @@ const styles = StyleSheet.create({
     padding: 16,
     textAlign: 'center',
     backgroundColor: '#fff',
+  },
+  // (Câu 8): Style cho Search
+  searchContainer: {
+    backgroundColor: '#fff',
+    padding: 10,
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
   },
+  searchInput: {
+    height: 40,
+    backgroundColor: '#f0f0f0',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    fontSize: 16,
+  },
+  // --------------------
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
